@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SEO Hack App — Research-backed Blog Generator</title>
+  <meta name="description" content="Generate SEO-optimized drafts from website, description, or keywords using public data sources — no API keys required.">
+  <style>
+    :root{
+      --bg:#0b0f1a; --card:#101729; --muted:#8ea0bf; --text:#e6ecff;
+      --accent:#7c5cff; --accent-2:#00e5a8; --warn:#f59e0b; --danger:#ff5470;
+      --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 800px at 80% -20%, rgba(124,92,255,.25), transparent 70%),
+        radial-gradient(1000px 700px at -10% 10%, rgba(0,229,168,.18), transparent 60%),
+        linear-gradient(180deg, #0a0e19 0%, #0b0f1a 100%);
+      background-attachment: fixed;
+    }
+    a{color:inherit}
+    .container{max-width:1100px;margin:0 auto;padding:24px}
+    header{
+      position:sticky;top:0;z-index:50;background:rgba(10,14,25,.7);
+      backdrop-filter:saturate(120%) blur(8px);border-bottom:1px solid var(--border)
+    }
+    .nav{display:flex;align-items:center;gap:16px}
+    .nav .grow{flex:1}
+    .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+    .logo-badge{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;box-shadow:var(--shadow)}
+    .logo-badge svg{width:18px;height:18px}
+    .logo span{font-weight:700;letter-spacing:.2px}
+    .btn{--pad-x:18px; --pad-y:12px; display:inline-flex;align-items:center;gap:10px;padding:var(--pad-y) var(--pad-x);border-radius:999px;border:1px solid var(--border);background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));box-shadow:var(--shadow);color:var(--text);text-decoration:none;font-weight:600;letter-spacing:.2px;cursor:pointer}
+    .btn:hover{transform:translateY(-1px);transition:transform .2s ease}
+    .btn.primary{background-image:linear-gradient(135deg,var(--accent),var(--accent-2));border-color:transparent}
+    .btn.small{--pad-x:14px;--pad-y:8px;font-size:.95rem}
+    .btn.ghost{background:transparent}
+    .grid{display:grid;gap:20px}
+    .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:26px;align-items:center;padding:48px 0 30px}
+    @media (max-width:960px){.hero{grid-template-columns:1fr}}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .muted{color:var(--muted)}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.04);font-size:.9rem}
+    .input, textarea{width:100%;padding:14px 16px;border-radius:12px;border:1px solid var(--border);background:#0e1526;color:var(--text);font-size:1rem;outline:none}
+    textarea{min-height:88px;resize:vertical}
+    .input::placeholder, textarea::placeholder{color:#9db0d0}
+    .input-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:780px){.input-row{grid-template-columns:1fr}}
+    .features{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    @media (max-width:980px){.features{grid-template-columns:1fr}}
+    .feature{padding:16px}
+    .kpi{display:flex;align-items:center;gap:12px}
+    .kpi .dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
+    .section{padding:36px 0}
+    .center{text-align:center}
+    .loading-screen{display:none}
+    .loader{width:64px;height:64px;border-radius:50%;border:6px solid rgba(255,255,255,.15);border-top-color:var(--accent);animation:spin 1s linear infinite;margin:0 auto 16px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .progress{height:10px;background:#0e1526;border-radius:999px;overflow:hidden;border:1px solid var(--border)}
+    .progress > i{display:block;width:0;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .4s ease}
+    .stat-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+    @media (max-width:980px){.stat-cards{grid-template-columns:1fr}}
+    .stat{padding:14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.03)}
+    .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:rgba(124,92,255,.18);border:1px solid rgba(124,92,255,.4);font-size:.85rem}
+    .results{display:none}
+    .result-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:20px}
+    @media (max-width:980px){.result-grid{grid-template-columns:1fr}}
+    .hashtags{display:flex;flex-wrap:wrap;gap:8px}
+    .hashtag{padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.04);font-size:.95rem}
+    .footer{padding:30px 0;border-top:1px solid var(--border);color:#9fb1d2}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    .help{font-size:.95rem;color:#a7b8d6}
+    code.inline{background:#0d1324;border:1px solid var(--border);padding:2px 6px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <a class="logo" href="#" aria-label="SEO Hack Home">
+        <span class="logo-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10h7l2-3 2 3h7M5 20h14M8 14h8"/>
+          </svg>
+        </span>
+        <span>SEO Hack App</span>
+      </a>
+      <div class="grow"></div>
+      <nav class="nav" aria-label="Primary">
+        <a href="#pricing">Pricing</a>
+        <a href="#plans">Plans</a>
+        <a href="#about">About</a>
+        <a href="#support">Support</a>
+        <a class="btn small ghost" href="#login">Log In</a>
+        <a class="btn small primary" href="#signup">Sign Up</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- HERO / LANDING -->
+    <section class="hero" id="landing">
+      <div class="grid">
+        <span class="pill">Research-backed generator • Powered by public sources</span>
+        <h1>Real keyword research → a draft that’s built to rank.</h1>
+        <p class="muted">Paste a website, or describe your product/service (or enter your own keywords). We research live suggestions & related terms, then generate a draft to the recommended length.</p>
+
+        <form id="generatorForm" class="grid card" style="padding:16px">
+          <div class="input-row">
+            <input id="website" class="input" type="url" placeholder="Website URL — e.g., https://example.com/product/page">
+            <input id="keywords" class="input" type="text" placeholder="Other keywords (comma separated)">
+          </div>
+          <div class="input-row">
+            <textarea id="description" class="input" placeholder="Product / Service Description — audience, differentiators, use cases"></textarea>
+            <div class="grid" style="gap:8px">
+              <label class="help">Sources (no keys): <code class="inline">r.jina.ai</code>, <code class="inline">duckduckgo.com/ac</code>, <code class="inline">api.datamuse.com</code></label>
+              <label class="help">Tip: You can fill **one** of Website, Description, or Keywords.</label>
+              <button id="generateBtn" class="btn primary" type="submit" style="justify-self:end">Research & Generate</button>
+            </div>
+          </div>
+        </form>
+
+        <div class="features">
+          <div class="card feature">
+            <div class="kpi"><span class="dot"></span><strong>Real data</strong></div>
+            <p class="muted">Rival phrases & searched questions come from live public sources. No hallucinations.</p>
+          </div>
+          <div class="card feature">
+            <div class="kpi"><span class="dot" style="background:var(--accent-2)"></span><strong>30s insights</strong></div>
+            <p class="muted">Watch stats fill in while we fetch suggestions and infer optimal length.</p>
+          </div>
+          <div class="card feature">
+            <div class="kpi"><span class="dot" style="background:var(--warn)"></span><strong>Length-aware draft</strong></div>
+            <p class="muted">We target the recommended word count based on intent patterns.</p>
+          </div>
+        </div>
+      </div>
+
+      <aside class="card" style="padding:18px">
+        <h3 style="margin:0 0 6px">Live Preview</h3>
+        <p class="muted" style="margin:0 0 12px">A peek at your upcoming draft’s title, meta, and outline.</p>
+        <div id="livePreview">
+          <div class="badge">Title</div>
+          <div id="pvTitle" style="margin:8px 0 12px">—</div>
+          <div class="badge">Meta Description</div>
+          <div id="pvMeta" class="muted" style="margin:8px 0 12px">—</div>
+          <div class="badge">Outline</div>
+          <ul id="pvOutline" class="muted" style="margin:8px 0 0 18px"><li>—</li></ul>
+        </div>
+      </aside>
+    </section>
+
+    <!-- LOADING / INSIGHTS (30s) -->
+    <section id="loading" class="loading-screen section">
+      <div class="center">
+        <div class="loader" role="status" aria-live="polite"></div>
+        <h2>Researching your SERP landscape…</h2>
+        <p class="muted">Pulling live suggestions & related terms.</p>
+      </div>
+      <div class="progress" aria-label="Progress"><i id="progressBar"></i></div>
+      <div class="stat-cards">
+        <div class="stat">
+          <div class="badge">Top Rival Keywords (5)</div>
+          <ul id="statKeywords" style="margin:8px 0 0 18px"><li>—</li></ul>
+        </div>
+        <div class="stat">
+          <div class="badge">Top Searched Questions (3)</div>
+          <ul id="statQuestions" style="margin:8px 0 0 18px"><li>—</li></ul>
+        </div>
+        <div class="stat">
+          <div class="badge">Recommended Optimal Length</div>
+          <h3 id="statLength" style="margin:8px 0 6px">—</h3>
+          <p class="muted">Inferred from intent patterns.</p>
+        </div>
+      </div>
+      <p class="muted center" style="margin-top:10px">Time left: <strong id="timeLeft">30</strong> sec</p>
+    </section>
+
+    <!-- RESULTS / EMAIL GATE -->
+    <section id="results" class="results section">
+      <div class="result-grid">
+        <article class="card" style="padding:18px">
+          <div class="badge">Page Title</div>
+          <h2 id="resTitle" style="margin:8px 0 10px">—</h2>
+
+          <div class="badge">Summary</div>
+          <p id="resSummary" class="muted" style="margin:8px 0 16px">—</p>
+
+          <div class="badge">Meta Description</div>
+          <p id="resMeta" class="muted" style="margin:8px 0 16px">—</p>
+
+          <div class="badge">Hashtags</div>
+          <div id="resHashtags" class="hashtags" style="margin:8px 0 14px"></div>
+
+          <div class="badge">Outline</div>
+          <ul id="resOutline" style="margin:8px 0 0 18px"></ul>
+
+          <div class="badge">Draft</div>
+          <div id="resArticle" class="muted" style="margin:8px 0 0"></div>
+        </article>
+
+        <aside class="card" style="padding:18px">
+          <h3 style="margin:0 0 8px">Download your draft</h3>
+          <p class="muted">Enter your email to download an HTML draft. (PDF/CMS push in production.)</p>
+          <form id="emailForm" class="grid" style="gap:10px;margin-top:10px">
+            <label class="sr-only" for="email">Email Address</label>
+            <input id="email" class="input" type="email" placeholder="you@company.com" required>
+            <button id="downloadBtn" class="btn primary" type="submit" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="white" stroke-width="2"/></svg>
+              Download Blog
+            </button>
+            <p id="emailHelp" class="help">We’ll add email delivery in the full app.</p>
+          </form>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer container">
+    <div class="grid" style="grid-template-columns:1fr auto;gap:10px">
+      <div>
+        <strong>SEO Hack App</strong> — Build organic traffic with better content, faster.
+        <br><span class="muted">Support:</span> <a href="mailto:support@seo-hack.com">support@seo-hack.com</a>
+      </div>
+      <div class="muted">© <span id="year"></span> SEO Hack. All rights reserved.</div>
+    </div>
+  </footer>
+
+  <script>
+    // ============== Utilities & NLP helpers ==============
+    const $  = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+    const sleep = ms => new Promise(r=>setTimeout(r,ms));
+    const clamp = (n,a,b)=>Math.max(a,Math.min(b,n));
+    const slug = s => (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,'-');
+    const uniq = a => Array.from(new Set((a||[]).filter(Boolean)));
+
+    // Noise lists
+    const STOP = new Set(("a,an,the,and,or,for,to,of,in,on,with,at,by,from,as,is,are,was,were,be,can,will,"+
+      "that,this,these,those,how,what,why,which,where,when,who,whom,vs,vs.,it,its,into,than,then,if,so,not,do,does,have,has,had,"+
+      "your,our,my,us,we,you,about,more,up,out,all,any,each,just,only,over,new,may,also,per,very,make,using,used,use,via,well,such,like,plus,"+
+      "within,between,across,around,including,include,includes,including").split(',').map(s=>s.trim()));
+
+    const TECH_BLACKLIST = new Set(("http,https,www,xml,http2,http/2,html,css,js,javascript,cdn,cookie,cookies,cache,cached,"+
+      "dns,tcp,ip,ipv4,ipv6,ssl,tls,cert,certificate,oauth,xmlhttp,xhr,json,api,meta,robots,sitemap,"+
+      "utm,referrer,accept,content-type,server,nginx,apache,cloudflare,vercel,netlify,github,gitlab,"+
+      "link,href,src,svg,png,jpg,jpeg,webp,woff,woff2,ttf,ico,manifest,policy,privacy,terms,gdpr").split(',').map(s=>s.trim()));
+
+    const cleanToken = w => w.toLowerCase().replace(/[^a-z0-9-]/g,'').replace(/^-+|-+$/g,'');
+    const isWord = w => /^[a-z][a-z0-9-]*$/i.test(w);
+
+    function tokenize(text){
+      return (text||'')
+        .toLowerCase()
+        .replace(/https?:\/\/\S+/g,' ')
+        .replace(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/g,' ')
+        .replace(/\/[a-z0-9._/-]+/g,' ')
+        .replace(/[^a-z0-9\s-]/g,' ')
+        .split(/\s+/)
+        .map(cleanToken)
+        .filter(w => w && isWord(w) && w.length>2 && !STOP.has(w) && !TECH_BLACKLIST.has(w));
+    }
+
+    // RAKE-lite phrase extraction (2–4 words), preferring topical phrases
+    function extractPhrases(text, {minLen=2, maxLen=4, topK=20} = {}){
+      const words = (text||'').toLowerCase().replace(/[^a-z0-9\s-]/g,' ').split(/\s+/).map(cleanToken);
+      const phrases = [];
+      let cur = [];
+      for(const w of words){
+        if(!w || STOP.has(w) || TECH_BLACKLIST.has(w)){ if(cur.length){ phrases.push(cur); cur=[]; } }
+        else { cur.push(w); }
+      }
+      if(cur.length) phrases.push(cur);
+
+      const cands = phrases.filter(p => p.length>=minLen && p.length<=maxLen);
+      const freq = new Map(), degree = new Map();
+      for(const p of cands){
+        const u = Array.from(new Set(p));
+        const deg = p.length - 1;
+        for(const w of u){ freq.set(w,(freq.get(w)||0)+1); degree.set(w,(degree.get(w)||0)+deg); }
+      }
+      function score(p){
+        let s = 0;
+        for(const w of p){ const f=freq.get(w)||0, d=degree.get(w)||0; s += (f + d); }
+        if(p.length>=2) s *= 1.4; if(p.length===4) s *= 1.15;
+        if(p.some(w=>TECH_BLACKLIST.has(w))) s *= 0.2;
+        return s;
+      }
+      const ranked = cands
+        .map(p => [p.join(' '), score(p)])
+        .reduce((m,[k,v])=>m.set(k,(m.get(k)||0)+v), new Map());
+      return Array.from(ranked.entries()).sort((a,b)=>b[1]-a[1]).slice(0, topK).map(([phrase])=>phrase);
+    }
+
+    function topTerms(texts, n=12){
+      const big = extractPhrases(texts.join('\n'), {minLen:2,maxLen:4,topK:n*2});
+      if(big.length >= n) return big.slice(0,n);
+      const tokens = tokenize(texts.join('\n'));
+      const freq = new Map(); for(const w of tokens) freq.set(w,(freq.get(w)||0)+1);
+      const singles = Array.from(freq.entries()).sort((a,b)=>b[1]-a[1]).map(([w])=>w);
+      return Array.from(new Set([...big, ...singles])).slice(0,n);
+    }
+
+    const questionLike = q => /^(who|what|why|how|when|where|which|can|should|does|is|are|do|vs)\b/i.test(q) || q.trim().endsWith('?');
+
+    function dedupPhrases(arr){
+      const out = [];
+      for(const p of arr){
+        const a = new Set(p.split(' '));
+        let keep = true;
+        for(const q of out){
+          const b = new Set(q.split(' '));
+          const inter = new Set([...a].filter(x=>b.has(x))).size;
+          const sim = inter / Math.min(a.size, b.size);
+          if(sim >= 0.75){ keep = false; break; }
+        }
+        if(keep) out.push(p);
+      }
+      return out;
+    }
+
+    // ============== Public sources (no keys) ==============
+    async function fetchJinaText(rawUrl){
+      const url = (rawUrl||'').trim();
+      if(!url) return '';
+      const noScheme = url.replace(/^https?:\/\//,'');
+      // try full path first (https + http)
+      try{ const r = await fetch('https://r.jina.ai/https://' + noScheme); if(r.ok) return await r.text(); }catch(e){}
+      try{ const r = await fetch('https://r.jina.ai/http://'  + noScheme); if(r.ok) return await r.text(); }catch(e){}
+      // fallback: root domain
+      const root = noScheme.split('/')[0];
+      try{ const r = await fetch('https://r.jina.ai/https://' + root); if(r.ok) return await r.text(); }catch(e){}
+      try{ const r = await fetch('https://r.jina.ai/http://'  + root); if(r.ok) return await r.text(); }catch(e){}
+      return '';
+    }
+
+    async function ddgSuggest(q){
+      try{
+        const r = await fetch('https://duckduckgo.com/ac/?' + new URLSearchParams({q, type:'list'}));
+        if(!r.ok) return [];
+        const j = await r.json();
+        return (j||[]).map(x=>x.phrase).filter(Boolean);
+      }catch(e){ return []; }
+    }
+
+    async function datamuseRelated(q, max=12){
+      try{
+        const r = await fetch('https://api.datamuse.com/words?' + new URLSearchParams({ml:q, max}));
+        if(!r.ok) return [];
+        const j = await r.json();
+        return (j||[]).map(x=>x.word).filter(Boolean);
+      }catch(e){ return []; }
+    }
+
+    // ============== Builders ==============
+    const buildTitle = (topic, brand='') => `${topic.charAt(0).toUpperCase()+topic.slice(1)}: The Complete Guide${brand?(' — '+brand):''}`;
+    const buildMeta  = (topic, rivals=[]) => `Actionable guide to ${topic}. We cover ${rivals.slice(0,3).join(', ')} and answer top questions audiences actually search.`;
+    const buildOutline = (topic, questions=[]) => [
+      `Introduction: Why ${topic} matters`,
+      `Key considerations for ${topic}`,
+      `Top options & comparisons`,
+      `Step-by-step: Getting started with ${topic}`,
+      ...(questions.length ? [`FAQs: ${questions.join(' • ')}`] : []),
+      `Conclusion & next steps`,
+    ];
+    const buildHashtags = (rivals=[], topic='seo') => {
+      const toTag = s => '#'+slug(s).replace(/-/g,'');
+      const base = rivals.slice(0,5).map(toTag);
+      const extras = ['#seo','#content','#marketing','#growth'];
+      return uniq(base.concat([toTag(topic)]).concat(extras)).slice(0,7);
+    };
+
+    function inferLength(signals){
+      const t = (signals||[]).join(' || ').toLowerCase();
+      let min=1200, max=2000;
+      const count = k => (t.match(new RegExp('\\b'+k+'\\b','g'))||[]).length;
+      const tutorialish = count('how') + count('guide') + count('tutorial') + count('step') + count('setup');
+      const listicles   = count('best') + count('top') + count('ideas') + count('tools') + count('examples');
+      const compare     = count('vs') + count('compare') + count('comparison') + count('review') + count('reviews');
+      if(tutorialish >= 2){ min=1800; max=2600; }
+      else if(listicles >= 2){ min=1500; max=2200; }
+      else if(compare   >= 2){ min=1200; max=1800; }
+      const target = Math.round(((min+max)/2)/100)*100;
+      return {min,max,target};
+    }
+
+    // Structured article generator (varied sections; no filler loops)
+    function generateArticle(topic, questions, rivals, targetWords){
+      const bulletsFromRivals = rivals.slice(0,6).map(k => `<li><strong>${k}:</strong> what it means, when to use it, and how it impacts results.</li>`).join('');
+      const steps = [
+        `Define your goal & audience for ${topic}.`,
+        `Research intent — informational, commercial, or transactional.`,
+        `Select focus keywords and supporting phrases.`,
+        `Draft an outline that mirrors searcher tasks.`,
+        `Write, add internal links, and include clear CTAs.`,
+        `Publish, fetch & refine using metrics (CTR, dwell time, links).`
+      ].map(s=>`<li>${s}</li>`).join('');
+      const faqs = (questions.length?questions:[
+        `How to choose ${topic}?`,
+        `What is the best ${topic}?`,
+        `${topic} vs alternatives — which is better?`
+      ]).map(q=>`<dt>${q}</dt><dd>${q.replace(/\?$/,'')} — explained with practical criteria, examples, and a quick decision path.</dd>`).join('');
+
+      // Compose HTML sections
+      let html = `
+        <p><strong>Overview.</strong> This guide to <em>${topic}</em> distills real search patterns into practical steps you can apply today.</p>
+        <h3>Key considerations for ${topic}</h3>
+        <ul>${bulletsFromRivals}</ul>
+        <h3>Top options & comparisons</h3>
+        <p>Here’s how common approaches compare when your goal is visibility <em>and</em> conversion:</p>
+        <ul>${rivals.slice(0,4).map(k=>`<li>${k} — pros, cons, and when it wins.</li>`).join('')}</ul>
+        <h3>Step-by-step: Getting started with ${topic}</h3>
+        <ol>${steps}</ol>
+        <h3>FAQs</h3>
+        <dl>${faqs}</dl>
+        <h3>Conclusion & next steps</h3>
+        <p>Focus on intent, keep structure scannable, and revisit your outline as data comes in. Ship, measure, iterate.</p>
+      `;
+
+      // Light expansion until near target words (varied tips)
+      const tips = [
+        `Use headings that mirror user intent, not jargon.`,
+        `Answer the main question within the first screenful.`,
+        `Group related subtopics into sections with jump links.`,
+        `Add data or examples to earn links and trust.`,
+        `Close with a next step that reduces friction.`
+      ];
+      let words = html.replace(/<[^>]+>/g,' ').split(/\s+/).filter(Boolean).length;
+      let i = 0;
+      while(words < targetWords && i < tips.length){
+        html += `<p><em>Pro tip:</em> ${tips[i++]}</p>`;
+        words = html.replace(/<[^>]+>/g,' ').split(/\s+/).filter(Boolean).length;
+      }
+      return html;
+    }
+
+    // ============== DOM refs ==============
+    const landing = $('#landing'), loading = $('#loading'), results = $('#results');
+    const progressBar = $('#progressBar'), timeLeft = $('#timeLeft');
+    const statKeywords = $('#statKeywords'), statQuestions = $('#statQuestions'), statLength = $('#statLength');
+    const pvTitle = $('#pvTitle'), pvMeta = $('#pvMeta'), pvOutline = $('#pvOutline');
+    const resTitle = $('#resTitle'), resSummary = $('#resSummary'), resMeta = $('#resMeta');
+    const resOutline = $('#resOutline'), resHashtags = $('#resHashtags'), resArticle = $('#resArticle');
+
+    // ============== Main flow ==============
+    $('#generatorForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const website = $('#website').value.trim();
+      const description = $('#description').value.trim();
+      const keywordsRaw = $('#keywords').value.trim();
+
+      if(!website && !description && !keywordsRaw){
+        alert('Please enter a Website OR a Description OR Keywords.');
+        return;
+      }
+
+      // Show loading
+      landing.style.display = 'none';
+      loading.style.display = 'block';
+      results.style.display = 'none';
+      let t = 30, p = 0;
+      timeLeft.textContent = t;
+      progressBar.style.width = '0%';
+      const timer = setInterval(()=>{ t -= 1; p = clamp(p + (Math.random()*5+1), 0, 100); timeLeft.textContent = t; progressBar.style.width = p + '%'; if(t<=0) clearInterval(timer); }, 1000);
+
+      // Resolve mode + seed
+      let mode = 'keywords';
+      if(website) mode = 'website';
+      else if(description) mode = 'description';
+
+      let siteDomain = '';
+      if(website){
+        try{ siteDomain = new URL(website).hostname.replace(/^www\./,''); }catch(e){}
+      }
+
+      // --- Research ---
+      let seedTopic = '';
+      let seedTerms = [];
+
+      try {
+        if(mode === 'website'){
+          const text = await fetchJinaText(website);
+          const phrases = topTerms([text], 15);
+          seedTerms = dedupPhrases(phrases.filter(p=>!TECH_BLACKLIST.has(p))).slice(0,8);
+          const domainBits = (siteDomain||'').split('.').filter(x=>!['www','com','net','org','io','co'].includes(x) && x.length>2);
+          seedTopic = seedTerms[0] || domainBits.join(' ') || domainBits[0] || siteDomain || 'your topic';
+        } else if(mode === 'description'){
+          seedTerms = topTerms([description], 12).slice(0,8);
+          seedTopic = seedTerms[0] || description.split(/\s+/).slice(0,3).join(' ');
+        } else {
+          const kws = keywordsRaw.split(',').map(s=>s.trim()).filter(Boolean);
+          seedTerms = uniq(kws.concat(topTerms([kws.join(' ')], 8))).slice(0,8);
+          seedTopic = seedTerms[0] || (kws[0] || 'your topic');
+        }
+
+        // Build strong prefixes for questions
+        const base = seedTopic.split(' ').slice(0,4).join(' ');
+        const shortSeed = (seedTerms[0] || base).split(' ').slice(0,3).join(' ');
+        const prefixes = uniq([
+          base, shortSeed,
+          `${shortSeed} how to`, `${shortSeed} what is`, `${shortSeed} best`,
+          `${shortSeed} vs`, `how to ${shortSeed}`, `${shortSeed} for`
+        ]).slice(0,8);
+
+        // DuckDuckGo suggestions
+        let ddgAll = [];
+        for(const pfx of prefixes){
+          const items = await ddgSuggest(pfx);
+          ddgAll = ddgAll.concat(items);
+          if(ddgAll.length > 80) break;
+        }
+        ddgAll = uniq(ddgAll);
+
+        // Datamuse related
+        const dmBase = await datamuseRelated(seedTopic,16);
+        const dmExtra = await Promise.all(seedTerms.slice(0,2).map(w=>datamuseRelated(w,10)));
+        const dmAll = uniq(dmBase.concat(...dmExtra));
+
+        // Rival keywords: prefer multiword phrases, non-technical, dedup near-dupes
+        const ddgPhrases = ddgAll.map(s=>s.toLowerCase().trim()).filter(s => s && s.split(' ').length <= 5 && !TECH_BLACKLIST.has(s));
+        let rivals = uniq(
+          ddgPhrases.filter(s => !questionLike(s))
+            .concat(dmAll.map(s=>s.toLowerCase().trim()))
+            .concat(seedTerms)
+        ).filter(s => s.split(' ').length >= 2);
+        rivals = dedupPhrases(rivals).slice(0,5);
+        if(rivals.length < 5){
+          const singles = tokenize((seedTerms.join(' ') + ' ' + ddgAll.join(' '))).slice(0,10);
+          rivals = uniq(rivals.concat(singles)).slice(0,5);
+        }
+
+        // Questions (guarantee 3)
+        let questions = ddgAll.filter(questionLike).slice(0,3);
+        if(questions.length < 3){
+          const baseQ = (rivals[0] || seedTopic || 'your topic').split(' ').slice(0,4).join(' ');
+          const fillers = [
+            `How to choose ${baseQ}?`,
+            `What is the best ${baseQ}?`,
+            `${baseQ} vs alternatives — which is better?`
+          ];
+          questions = uniq(questions.concat(fillers)).slice(0,3);
+        }
+
+        // Optimal length
+        const {min, max, target} = inferLength(ddgAll.concat(rivals).concat(questions));
+
+        // Update INSIGHTS UI
+        $('#statKeywords').innerHTML = (rivals.length?rivals:['—']).map(k => `<li>${k}</li>`).join('');
+        $('#statQuestions').innerHTML = (questions.length?questions:['—']).map(q => `<li>${q}</li>`).join('');
+        $('#statLength').textContent = `${min.toLocaleString()}–${max.toLocaleString()} words (target ~${target.toLocaleString()})`;
+
+        // Live preview
+        const topic = rivals[0] || seedTopic;
+        pvTitle.textContent = buildTitle(topic, siteDomain);
+        pvMeta.textContent  = buildMeta(topic, rivals);
+        pvOutline.innerHTML = buildOutline(topic, questions).map(li=>`<li>${li}</li>`).join('');
+
+        // Wait remaining time
+        await sleep(t*1000);
+
+        // Results page
+        const title = buildTitle(topic, siteDomain);
+        const meta  = buildMeta(topic, rivals);
+        const outlineArr = buildOutline(topic, questions);
+        const hashtags = buildHashtags(rivals, topic);
+        const summary = `This article targets "${topic}", covering ${rivals.slice(0,3).join(', ')}, answering questions like ${questions.slice(0,2).map(q=>'"'+q+'"').join(' and ')}, and aiming for ~${target} words.`;
+
+        const articleHTML = generateArticle(topic, questions, rivals, target);
+
+        resTitle.textContent = title;
+        resMeta.textContent  = meta;
+        resSummary.textContent = summary;
+        resOutline.innerHTML = outlineArr.map(li=>`<li>${li}</li>`).join('');
+        resHashtags.innerHTML = hashtags.map(h=>`<span class="hashtag">${h}</span>`).join('');
+        resArticle.innerHTML = articleHTML;
+
+        loading.style.display = 'none';
+        results.style.display  = 'block';
+        window.scrollTo({top:0, behavior:'smooth'});
+      } catch (err){
+        console.error(err);
+        alert('Research failed. Try a simpler input or a different site.');
+        loading.style.display = 'none';
+        landing.style.display = 'block';
+      }
+    });
+
+    // Email gate → enable download
+    $('#email').addEventListener('input', ()=>{ $('#downloadBtn').disabled = !$('#email').checkValidity(); });
+
+    // Download generated article
+    $('#emailForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      if(!$('#email').checkValidity()) return;
+
+      const title = $('#resTitle').textContent.trim();
+      const meta = $('#resMeta').textContent.trim();
+      const outline = Array.from($('#resOutline').querySelectorAll('li')).map(li => li.textContent.trim());
+      const tags = Array.from($('#resHashtags').querySelectorAll('.hashtag')).map(h => h.textContent.trim());
+      const article = $('#resArticle').innerHTML;
+
+      const exportHTML = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>${title}</title>
+<meta name="description" content="${meta}">
+<style>body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:840px;margin:40px auto;padding:0 16px;line-height:1.6}h1{font-size:2.2rem} .muted{color:#555} .tag{display:inline-block;margin:2px 6px 0 0;padding:4px 8px;border-radius:8px;border:1px solid #ddd;font-size:.9rem} h3{margin-top:1.6em} dl{margin:0} dt{font-weight:700;margin-top:10px}</style>
+</head><body>
+<h1>${title}</h1>
+<p class="muted"><em>${meta}</em></p>
+<h2>Outline</h2>
+<ol>${outline.map(li=>`<li>${li}</li>`).join('')}</ol>
+<h2>Hashtags</h2>
+<p>${tags.map(t=>`<span class="tag">${t}</span>`).join(' ')}</p>
+<h2>Article</h2>
+${article}
+<hr><p class="muted">Exported from SEO Hack App</p>
+</body></html>`;
+
+      const blob = new Blob([exportHTML], {type:'text/html'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = slug(title || 'seo-blog') + '.html';
+      document.body.appendChild(a); a.click(); URL.revokeObjectURL(url); a.remove();
+    });
+
+    // Footer year
+    $('#year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
