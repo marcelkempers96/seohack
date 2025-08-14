@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SEO Hack App — Research-backed AI Blog Demo</title>
+  <meta name="description" content="Research real keywords and questions using public APIs, then generate a blog draft with a recommended optimal length. Standalone demo UI — no keys required." />
+  <style>
+    :root{
+      --bg:#0b0f1a; --card:#101729; --muted:#8ea0bf; --text:#e6ecff;
+      --accent:#7c5cff; --accent-2:#00e5a8; --warn:#f59e0b; --danger:#ff5470;
+      --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1100px 700px at 90% -20%, rgba(124,92,255,.25), transparent 70%),
+        radial-gradient(1000px 700px at -10% 10%, rgba(0,229,168,.18), transparent 60%),
+        linear-gradient(180deg, #0a0e19 0%, #0b0f1a 100%);
+      background-attachment: fixed;
+    }
+    .container{max-width:1100px;margin:0 auto;padding:24px}
+    header{position:sticky;top:0;z-index:50;background:rgba(10,14,25,.7);backdrop-filter:saturate(120%) blur(8px);border-bottom:1px solid var(--border)}
+    .nav{display:flex;align-items:center;gap:16px}
+    .nav .grow{flex:1}
+    .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+    .logo-badge{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;box-shadow:var(--shadow)}
+    .logo-badge svg{width:18px;height:18px}
+    .logo span{font-weight:700;letter-spacing:.2px}
+    .btn{--pad-x:18px; --pad-y:12px; display:inline-flex;align-items:center;gap:10px;padding:var(--pad-y) var(--pad-x);border-radius:999px;border:1px solid var(--border);background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));box-shadow:var(--shadow);color:var(--text);text-decoration:none;font-weight:600;letter-spacing:.2px;cursor:pointer}
+    .btn:hover{transform:translateY(-1px);transition:transform .2s ease}
+    .btn.primary{background-image:linear-gradient(135deg,var(--accent),var(--accent-2));border-color:transparent}
+    .btn.small{--pad-x:14px;--pad-y:8px;font-size:.95rem}
+    .btn.ghost{background:transparent}
+    .grid{display:grid;gap:20px}
+    .hero{display:grid;grid-template-columns:1.2fr .8fr;gap:26px;align-items:center;padding:48px 0 30px}
+    @media (max-width:980px){.hero{grid-template-columns:1fr}}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .muted{color:var(--muted)}
+    .section{padding:36px 0}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:rgba(255,255,255,.04);font-size:.9rem}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.03);cursor:pointer}
+    .tab.active{background:rgba(124,92,255,.2);border-color:rgba(124,92,255,.5)}
+    .input, textarea{width:100%;padding:14px 16px;border-radius:12px;border:1px solid var(--border);background:#0e1526;color:var(--text);font-size:1rem;outline:none}
+    .input::placeholder, textarea::placeholder{color:#9db0d0}
+    .input-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:780px){.input-row{grid-template-columns:1fr}}
+    .features{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    @media (max-width:980px){.features{grid-template-columns:1fr}}
+    .feature{padding:16px}
+    .kpi{display:flex;align-items:center;gap:12px}
+    .kpi .dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
+    .loading-screen{display:none}
+    .loader{width:64px;height:64px;border-radius:50%;border:6px solid rgba(255,255,255,.15);border-top-color:var(--accent);animation:spin 1s linear infinite;margin:0 auto 16px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .progress{height:10px;background:#0e1526;border-radius:999px;overflow:hidden;border:1px solid var(--border)}
+    .progress > i{display:block;width:0;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .4s ease}
+    .stat-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+    @media (max-width:980px){.stat-cards{grid-template-columns:1fr}}
+    .stat{padding:14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.03)}
+    .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:rgba(124,92,255,.18);border:1px solid rgba(124,92,255,.4);font-size:.85rem}
+    .results{display:none}
+    .result-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:20px}
+    @media (max-width:980px){.result-grid{grid-template-columns:1fr}}
+    .hashtags{display:flex;flex-wrap:wrap;gap:8px}
+    .hashtag{padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.04);font-size:.95rem}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    .help{font-size:.95rem;color:#a7b8d6}
+    .footer{padding:30px 0;border-top:1px solid var(--border);color:#9fb1d2}
+    code.inline{background:#0d1324;border:1px solid var(--border);padding:2px 6px;border-radius:6px}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container nav">
+      <a class="logo" href="#" aria-label="SEO Hack Home">
+        <span class="logo-badge" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10h7l2-3 2 3h7M5 20h14M8 14h8"/>
+          </svg>
+        </span>
+        <span>SEO Hack App</span>
+      </a>
+      <div class="grow"></div>
+      <nav class="nav" aria-label="Primary">
+        <a href="#plans">Plans</a>
+        <a href="#about">About</a>
+        <a class="btn small primary" href="#signup">Sign Up</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- HERO / LANDING -->
+    <section class="hero" id="landing">
+      <div class="grid">
+        <span class="pill">Research-backed generator • Powered by public APIs</span>
+        <h1>Real keyword research → a draft that’s built to rank.</h1>
+        <p class="muted">Paste a website, or describe your product/service (or enter your own keywords). We’ll research real rival keywords & questions, then generate a draft to the recommended length.</p>
+
+        <div class="tabs" role="tablist" aria-label="Input mode">
+          <button id="tab-website" class="tab active" role="tab" aria-selected="true">Website URL</button>
+          <button id="tab-description" class="tab" role="tab" aria-selected="false">Product / Service Description</button>
+          <button id="tab-keywords" class="tab" role="tab" aria-selected="false">Other Keywords</button>
+        </div>
+
+        <form id="generatorForm" class="grid card" style="padding:16px">
+          <div id="input-website" class="input-mode">
+            <label class="sr-only" for="website">Website</label>
+            <input id="website" class="input" type="url" placeholder="https://yourdomain.com" />
+            <p class="help">We’ll derive topics from your homepage text (via a public fetch proxy), then expand with live suggestions.</p>
+          </div>
+
+          <div id="input-description" class="input-mode" hidden>
+            <label class="sr-only" for="description">Product / Service Description</label>
+            <textarea id="description" class="input" rows="4" placeholder="Describe your product/service, target audience, and differentiation..."></textarea>
+          </div>
+
+          <div id="input-keywords" class="input-mode" hidden>
+            <label class="sr-only" for="keywords">Other keywords</label>
+            <input id="keywords" class="input" type="text" placeholder="best snorkel gear, dive masks, snorkeling tips" />
+          </div>
+
+          <div class="grid" style="gap:10px">
+            <div class="help">Data sources (no keys needed):
+              <br>• <code class="inline">r.jina.ai</code> — fetch readable page text from a URL
+              <br>• <code class="inline">duckduckgo.com/ac</code> — live autocomplete suggestions
+              <br>• <code class="inline">api.datamuse.com</code> — semantically related terms
+            </div>
+            <div class="actions" style="display:flex;gap:12px;justify-content:space-between;align-items:center">
+              <span class="help">We’ll show rival keywords, questions, and a target length.</span>
+              <button id="generateBtn" class="btn primary" type="submit">Research & Generate</button>
+            </div>
+          </div>
+        </form>
+
+        <div class="features">
+          <div class="card feature">
+            <div class="kpi"><span class="dot"></span><strong>Real data</strong></div>
+            <p class="muted">Keywords from live autocomplete & semantic relations. No made-up insights.</p>
+          </div>
+          <div class="card feature">
+            <div class="kpi"><span class="dot" style="background:var(--accent-2)"></span><strong>30s insights</strong></div>
+            <p class="muted">Watch stats fill in while we fetch suggestions and infer optimal length.</p>
+          </div>
+          <div class="card feature">
+            <div class="kpi"><span class="dot" style="background:var(--warn)"></span><strong>Length-aware draft</strong></div>
+            <p class="muted">We target the recommended word count based on intent patterns.</p>
+          </div>
+        </div>
+      </div>
+
+      <aside class="card" style="padding:18px">
+        <h3 style="margin:0 0 6px">Live Preview</h3>
+        <p class="muted" style="margin:0 0 12px">A peek at your upcoming draft’s title, meta, and outline.</p>
+        <div id="livePreview">
+          <div class="badge">Title</div>
+          <div id="pvTitle" style="margin:8px 0 12px">—</div>
+          <div class="badge">Meta Description</div>
+          <div id="pvMeta" class="muted" style="margin:8px 0 12px">—</div>
+          <div class="badge">Outline</div>
+          <ul id="pvOutline" class="muted" style="margin:8px 0 0 18px"><li>—</li></ul>
+        </div>
+      </aside>
+    </section>
+
+    <!-- LOADING / INSIGHTS (30s) -->
+    <section id="loading" class="loading-screen section">
+      <div class="center" style="text-align:center">
+        <div class="loader" role="status" aria-live="polite"></div>
+        <h2>Researching and building your outline…</h2>
+        <p class="muted">Pulling live suggestions & related terms.</p>
+      </div>
+      <div class="progress" aria-label="Progress"><i id="progressBar"></i></div>
+      <div class="stat-cards">
+        <div class="stat">
+          <div class="badge">Top Rival Keywords (5)</div>
+          <ul id="statKeywords" style="margin:8px 0 0 18px"><li>—</li></ul>
+        </div>
+        <div class="stat">
+          <div class="badge">Top Searched Questions (3)</div>
+          <ul id="statQuestions" style="margin:8px 0 0 18px"><li>—</li></ul>
+        </div>
+        <div class="stat">
+          <div class="badge">Recommended Optimal Length</div>
+          <h3 id="statLength" style="margin:8px 0 6px">—</h3>
+          <p class="muted">Inferred from intent patterns in suggestions.</p>
+        </div>
+      </div>
+      <p class="muted center" style="margin-top:10px;text-align:center">Time left: <strong id="timeLeft">30</strong> sec</p>
+    </section>
+
+    <!-- RESULTS -->
+    <section id="results" class="results section">
+      <div class="result-grid">
+        <article class="card" style="padding:18px">
+          <div class="badge">Page Title</div>
+          <h2 id="resTitle" style="margin:8px 0 10px">—</h2>
+
+          <div class="badge">Summary</div>
+          <p id="resSummary" class="muted" style="margin:8px 0 16px">—</p>
+
+          <div class="badge">Meta Description</div>
+          <p id="resMeta" class="muted" style="margin:8px 0 16px">—</p>
+
+          <div class="badge">Hashtags</div>
+          <div id="resHashtags" class="hashtags" style="margin:8px 0 14px"></div>
+
+          <div class="badge">Outline</div>
+          <ul id="resOutline" style="margin:8px 0 0 18px"></ul>
+
+          <div class="badge">Draft</div>
+          <div id="resArticle" class="muted" style="margin:8px 0 0"></div>
+        </article>
+
+        <aside class="card" style="padding:18px">
+          <h3 style="margin:0 0 8px">Export your draft</h3>
+          <p class="muted">Download the generated article as a standalone HTML file.</p>
+          <form id="downloadForm" class="grid" style="gap:10px;margin-top:10px">
+            <button id="downloadBtn" class="btn primary" type="submit">Download HTML</button>
+            <p class="help">In production, add PDF export and CMS push.</p>
+          </form>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer container">
+    <div class="grid" style="grid-template-columns:1fr auto;gap:10px">
+      <div>
+        <strong>SEO Hack App</strong> — Research keywords with public APIs. Build better content, faster.
+        <br><span class="muted">Support:</span> <a href="mailto:support@seo-hack.com">support@seo-hack.com</a>
+      </div>
+      <div class="muted">© <span id="year"></span> SEO Hack. All rights reserved.</div>
+    </div>
+  </footer>
+
+  <script>
+    // ---------- Utilities ----------
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    const clamp = (n,a,b) => Math.max(a, Math.min(b, n));
+    const slug = s => (s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+    const uniq = arr => Array.from(new Set(arr.filter(Boolean))));
+    const sum = arr => arr.reduce((a,b)=>a+b,0);
+
+    // ---------- Stopwords & tokenization ----------
+    const STOP = new Set(("a,an,the,and,or,for,to,of,in,on,with,at,by,from,as,is,are,was,were,be,can,will,that,this,these,those,how,what,why,which,where,when,who,vs,vs.,it,its,into,than,then,if,so,not,do,does,have,has,had,your,our,my,us,we,you,about,more,up,out,all,any,each,just,only,over,new,may,also,per,very,make,using,used,use").split(','));
+    const tokenize = (text) => (text||'')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g,' ')
+      .split(/\s+/).filter(w => w && !STOP.has(w) && w.length>2);
+    const topTerms = (texts, n=10) => {
+      const freq = new Map();
+      texts.forEach(t => tokenize(t).forEach(w => freq.set(w, (freq.get(w)||0)+1)));
+      return Array.from(freq.entries()).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([w])=>w);
+    };
+
+    // ---------- Tabs ----------
+    const tabs = {
+      website: {tab: $('#tab-website'), pane: $('#input-website')},
+      description: {tab: $('#tab-description'), pane: $('#input-description')},
+      keywords: {tab: $('#tab-keywords'), pane: $('#input-keywords')},
+    };
+    Object.entries(tabs).forEach(([k, {tab, pane}]) => {
+      tab.addEventListener('click', () => {
+        Object.values(tabs).forEach(({tab, pane}) => { tab.classList.remove('active'); pane.hidden = true; });
+        tab.classList.add('active'); pane.hidden = false;
+      });
+    });
+
+    // ---------- Sections ----------
+    const landing = $('#landing');
+    const loading = $('#loading');
+    const results = $('#results');
+    const progressBar = $('#progressBar');
+    const timeLeft = $('#timeLeft');
+
+    // ---------- Live Preview ----------
+    const pvTitle = $('#pvTitle'), pvMeta = $('#pvMeta'), pvOutline = $('#pvOutline');
+
+    // ---------- Results ----------
+    const resTitle = $('#resTitle'), resSummary = $('#resSummary'), resMeta = $('#resMeta');
+    const resOutline = $('#resOutline'), resHashtags = $('#resHashtags'), resArticle = $('#resArticle');
+
+    // ---------- Insights ----------
+    const statKeywords = $('#statKeywords');
+    const statQuestions = $('#statQuestions');
+    const statLength = $('#statLength');
+
+    // ---------- Public API helpers ----------
+    async function fetchJinaText(url){
+      // r.jina.ai can proxy both http and https; we try https then http
+      try {
+        const r = await fetch('https://r.jina.ai/https://' + url.replace(/^https?:\/\//,'').replace(/\/$/,''));
+        if(r.ok){ return await r.text(); }
+      } catch(e){}
+      try {
+        const r = await fetch('https://r.jina.ai/http://' + url.replace(/^https?:\/\//,'').replace(/\/$/,''));
+        if(r.ok){ return await r.text(); }
+      } catch(e){}
+      return '';
+    }
+
+    async function ddgSuggest(q){
+      try{
+        const r = await fetch('https://duckduckgo.com/ac/?' + new URLSearchParams({q, type:'list'}));
+        if(!r.ok) return [];
+        const j = await r.json();
+        return (j||[]).map(x => x.phrase).filter(Boolean);
+      }catch(e){ return []; }
+    }
+
+    async function datamuseRelated(q, max=12){
+      try{
+        const r = await fetch('https://api.datamuse.com/words?' + new URLSearchParams({ml:q, max}));
+        if(!r.ok) return [];
+        const j = await r.json();
+        return (j||[]).map(x => x.word).filter(Boolean);
+      }catch(e){ return []; }
+    }
+
+    // ---------- Question helpers ----------
+    const questionLike = (q) => /^(who|what|why|how|when|where|which|can|should|does|is|are|do)\b/i.test(q) || q.trim().endsWith('?');
+    function chooseQuestions(suggestions, n=3){
+      const qs = suggestions.filter(s => questionLike(s));
+      return (qs.slice(0,n).length >= n) ? qs.slice(0,n) : qs.concat(suggestions.filter(s => !questionLike(s)).slice(0, n-qs.length));
+    }
+
+    // ---------- Length inference ----------
+    function inferLength(signals){
+      // signals: array of suggestion strings
+      const t = (signals||[]).join(' || ').toLowerCase();
+      let min=1200, max=2000;
+      const score = (kw) => (t.match(new RegExp('\\b'+kw+'\\b','g'))||[]).length;
+      const tutorialish = score('how') + score('guide') + score('tutorial') + score('step');
+      const listicles = score('best') + score('top') + score('ideas') + score('tools');
+      const comparisons = score('vs') + score('compare') + score('comparison') + score('review') + score('reviews');
+      if(tutorialish >= 2){ min=1800; max=2600; }
+      else if(listicles >= 2){ min=1500; max=2200; }
+      else if(comparisons >= 2){ min=1200; max=1800; }
+      return {min, max, target: Math.round((min+max)/2)};
+    }
+
+    // ---------- Content builders ----------
+    const buildTitle = (topic, brand='') => `${topic.charAt(0).toUpperCase()+topic.slice(1)}: The Complete Guide${brand?(' — '+brand):''}`;
+    const buildMeta = (topic, rivals) => `Actionable, research-backed guide to ${topic}. We cover ${rivals.slice(0,3).join(', ')} and answer top audience questions to help you rank.`;
+    const buildOutline = (topic, questions=[]) => {
+      return [
+        `Introduction: Why ${topic} matters`,
+        `Key Considerations for ${topic}`,
+        `Top Options & Comparisons`,
+        `Step-by-step: Getting started with ${topic}`,
+        ...(questions.length ? [`FAQs: ${questions.join(' • ')}`] : []),
+        `Conclusion & Next Steps`
+      ];
+    };
+    const buildHashtags = (rivals=[], topic='seo') => {
+      const base = uniq(rivals.concat([topic])).slice(0,7).map(k => '#'+slug(k));
+      const extras = ['#seo','#content','#marketing','#growth'];
+      return uniq(base.concat(extras)).slice(0,7);
+    };
+
+    function generateArticle(topic, questions, rivals, targetWords){
+      const outline = buildOutline(topic, questions);
+      const paras = [];
+      const sentence = (k)=>`This section focuses on ${k}, distilling insights from current search patterns and the competitive landscape to help readers make confident decisions.`;
+      const rand = (arr)=>arr[Math.floor(Math.random()*arr.length)];
+      const seed = uniq([topic].concat(rivals)).slice(0,6);
+      let words = 0, i = 0;
+      while(words < targetWords && i < 100){ // cap
+        const k = rand(seed) || topic;
+        const s = sentence(k) + ' ' +
+          `We explain what matters, how to evaluate trade-offs, and the practical steps that move the needle for ${k}. ` +
+          `Where relevant, we address common questions like ${questions[0] ? '"'+questions[0]+'"' : 'the key decision points'} with clear, jargon-free guidance.`;
+        paras.push(`<p>${s}</p>`);
+        words += s.split(/\s+/).length;
+        i++;
+      }
+      const html = outline.map(h => `<h3>${h}</h3><p>${sentence(topic)}</p>`).join('') + paras.join('');
+      return { html, outline };
+    }
+
+    // ---------- Main flow ----------
+    const form = $('#generatorForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Resolve mode
+      const w = $('#website').value.trim();
+      const d = $('#description').value.trim();
+      const kRaw = $('#keywords').value.trim();
+      let mode = 'website';
+      if(!w && d) mode = 'description';
+      if(!w && !d) mode = 'keywords';
+      const baseQuery = (mode==='website') ? w : (d || kRaw);
+      if(!baseQuery){ alert('Please enter a website, description, or keywords.'); return; }
+
+      // UI swap
+      landing.style.display = 'none';
+      loading.style.display = 'block';
+      results.style.display = 'none';
+
+      // Start 30s timer
+      let t = 30, p = 0;
+      timeLeft.textContent = t;
+      progressBar.style.width = '0%';
+      const timer = setInterval(()=>{ t -= 1; p = clamp(p + (Math.random()*5+1), 0, 100);
+        timeLeft.textContent = t; progressBar.style.width = p + '%'; if(t <= 0){ clearInterval(timer); } }, 1000);
+
+      // Research
+      let seedTopic = '';
+      let siteDomain = '';
+      let seedTerms = [];
+
+      try{
+        if(mode === 'website' && w){
+          try{
+            const u = new URL(w);
+            siteDomain = u.hostname.replace(/^www\./,'');
+          }catch(err){ alert('Please enter a valid website URL.'); loading.style.display='none'; landing.style.display='block'; return; }
+
+          // Fetch homepage readable text via r.jina.ai
+          const text = await fetchJinaText(siteDomain);
+          const terms = topTerms([text], 12);
+          seedTerms = terms.slice(0,6);
+          seedTopic = seedTerms[0] || siteDomain.split('.')[0];
+        } else if(mode === 'description'){
+          seedTopic = d.split(/\s+/).slice(0,4).join(' ');
+          seedTerms = topTerms([d], 8);
+        } else {
+          const kws = kRaw.split(',').map(s=>s.trim()).filter(Boolean);
+          seedTerms = uniq(kws.concat(topTerms([kws.join(' ')], 6)));
+          seedTopic = seedTerms[0] || (kws[0] || 'your topic');
+        }
+
+        // Live suggestions from DuckDuckGo & semantic expansion from Datamuse
+        // Build prefixes to encourage question-like suggestions
+        const ddgPrefixes = uniq([
+          seedTopic,
+          ...(seedTerms.slice(0,3)),
+          seedTopic + ' how',
+          seedTopic + ' what',
+          seedTopic + ' best'
+        ]).slice(0,6);
+
+        let ddgAll = [];
+        for(const pfx of ddgPrefixes){
+          const items = await ddgSuggest(pfx);
+          ddgAll = ddgAll.concat(items);
+          if(ddgAll.length > 60) break;
+        }
+        ddgAll = uniq(ddgAll);
+
+        // Datamuse related words for breadth
+        const dmAll = uniq((await datamuseRelated(seedTopic, 16)).concat(...await Promise.all(seedTerms.slice(0,2).map(x => datamuseRelated(x, 10)))));
+
+        // Rival keywords: blend DDG phrases + Datamuse, prefer non-question phrases
+        const rivals = uniq(
+          ddgAll.filter(s => !questionLike(s)).map(s => s.toLowerCase())
+          .concat(dmAll.map(s=>s.toLowerCase()))
+          .concat(seedTerms)
+        ).filter(s => s.split(' ').length <= 5).slice(0,5);
+
+        // Questions: prefer DDG question-like
+        const questions = chooseQuestions(ddgAll, 3);
+
+        // Optimal length inferred from suggestion intent
+        const {min, max, target} = inferLength(ddgAll.concat(rivals));
+
+        // Update insights immediately
+        statKeywords.innerHTML = (rivals.length? rivals: ['—']).map(k => `<li>${k}</li>`).join('');
+        statQuestions.innerHTML = (questions.length? questions: ['—']).map(q => `<li>${q}</li>`).join('');
+        statLength.textContent = `${min.toLocaleString()}–${max.toLocaleString()} words (target ~${target.toLocaleString()})`;
+
+        // Live preview
+        const topic = (mode==='website') ? (rivals[0] || seedTopic) : (rivals[0] || seedTopic);
+        pvTitle.textContent = buildTitle(topic, siteDomain);
+        pvMeta.textContent = buildMeta(topic, rivals);
+        pvOutline.innerHTML = buildOutline(topic, questions).map(li => `<li>${li}</li>`).join('');
+
+        // Wait remaining time
+        await sleep(1000 * t); // t is remaining seconds; timer interval will stop itself at 0
+
+        // Build final result
+        const title = buildTitle(topic, siteDomain);
+        const meta = buildMeta(topic, rivals);
+        const outlineArr = buildOutline(topic, questions);
+        const hashtags = buildHashtags(rivals, topic);
+        const summary = `This research-backed article on ${topic} uses public autocomplete and semantic relations to address what people actually look for. It covers ${rivals.slice(0,3).join(', ')}, answers questions like ${questions.slice(0,2).map(q=>'"'+q+'"').join(' and ')}, and targets ~${target} words for search intent.`;
+
+        const { html: articleHTML } = generateArticle(topic, questions, rivals, target);
+
+        // Populate UI
+        $('#resTitle').textContent = title;
+        $('#resMeta').textContent = meta;
+        $('#resSummary').textContent = summary;
+        $('#resOutline').innerHTML = outlineArr.map(li => `<li>${li}</li>`).join('');
+        $('#resHashtags').innerHTML = hashtags.map(t => `<span class="hashtag">${t}</span>`).join('');
+        $('#resArticle').innerHTML = articleHTML;
+
+        // Swap screens
+        loading.style.display = 'none';
+        results.style.display = 'block';
+        window.scrollTo({top:0, behavior:'smooth'});
+
+      }catch(err){
+        console.error(err);
+        clearInterval(timer);
+        alert('Something went wrong while researching. Please try a simpler query or another site.');
+        loading.style.display = 'none';
+        landing.style.display = 'block';
+      }
+    });
+
+    // ---------- Export ----------
+    $('#downloadForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = $('#resTitle').textContent.trim() || 'seo-hack-article';
+      const meta = $('#resMeta').textContent.trim();
+      const outline = Array.from($('#resOutline').querySelectorAll('li')).map(li => li.textContent.trim());
+      const hashtags = Array.from($('#resHashtags').querySelectorAll('.hashtag')).map(h => h.textContent.trim());
+      const article = $('#resArticle').innerHTML;
+
+      const exportHTML = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>${title}</title>
+<meta name="description" content="${meta}">
+<style>body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:840px;margin:40px auto;padding:0 16px;line-height:1.6}h1{font-size:2.2rem} .muted{color:#555} .tag{display:inline-block;margin:2px 6px 0 0;padding:4px 8px;border-radius:8px;border:1px solid #ddd;font-size:.9rem} h3{margin-top:1.6em}</style>
+</head><body>
+<h1>${title}</h1>
+<p class="muted"><em>${meta}</em></p>
+<h2>Outline</h2>
+<ol>${outline.map(li=>`<li>${li}</li>`).join('')}</ol>
+<h2>Hashtags</h2>
+<p>${hashtags.map(t=>`<span class="tag">${t}</span>`).join(' ')}</p>
+<h2>Article</h2>
+${article}
+<hr><p class="muted">Exported from SEO Hack App</p>
+</body></html>`;
+
+      const blob = new Blob([exportHTML], {type:'text/html'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = slug(title || 'seo-hack-article') + '.html';
+      document.body.appendChild(a); a.click(); URL.revokeObjectURL(url); a.remove();
+    });
+
+    // Footer year
+    $('#year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
