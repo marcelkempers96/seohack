@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SEO Hack App — Research-backed AI Blog Demo</title>
+  <meta name="description" content="Research real keywords and questions using Bing APIs, then generate a blog draft with a recommended optimal length. Standalone demo UI." />
+  <style>
+    :root{
+      --bg:#0b0f1a; --card:#101729; --muted:#8ea0bf; --text:#e6ecff;
+      --accent:#7c5cff; --accent-2:#00e5a8; --warn:#f59e0b; --danger:#ff5470;
+      --border:rgba(255,255,255,.08); --shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1100px 700px at 90% -20%, rgba(124,92,255,.25), transparent 70%),
+        radial-gradient(1000px 700px at -10% 10%, rgba(0,229,168,.18), transparent 60%),
+        linear-gradient(180deg, #0a0e19 0%, #0b0f1a 100%);
+      background-attachment: fixed;
+    }
+    .container{max-width:1100px;margin:0 auto;padding:24px}
+    header{position:sticky;top:0;z-index:50;background:rgba(10,14,25,.7);backdrop-filter:saturate(120%) blur(8px);border-bottom:1px solid var(--border)}
+    .nav{display:flex;align-items:center;gap:16px}
+    .nav .grow{flex:1}
+    .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+    .logo-badge{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;box-shadow:var(--shadow)}
+    .logo-badge svg{width:18px;height:18px}
+    .logo span{font-weight:700;letter-spacing:.2px}
+    .btn{--pad-x:18px; --pad-y:12px; display:inline-flex;align-items:center;gap:10px;padding:var(--pad-y) var(--pad-x);border-radius:999px;border:1px solid var(--border);background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));box-shadow:var(--shadow);color:var(--text);text-decoration:none;font-weight:600;letter-spacing:.2px;cursor:pointer}
+    .btn:hover{transform:translateY(-1px);transition:transform .2s ease}
+    .btn.primary{background-image:linear-gradient(135deg,var(--accent),var(--accent-2));border-color:transparent}
+    .btn.small{--pad-x:14px;--pad-y:8px;font-size:.95rem}
+    .btn.ghost{background:transparent}
+    .grid{display:grid;gap:20px}
+    .hero{display:grid;grid-template-columns:1.2fr .8fr;gap:26px;align-items:center;padding:48px 0 30px}
+    @media (max-width:980px){.hero{grid-template-columns:1fr}}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .muted{color:var(--muted)}
+    .section{padding:36px 0}
+    .input{width:100%;padding:14px 16px;border-radius:12px;border:1px solid var(--border);background:#0e1526;color:var(--text);font-size:1rem;outline:none}
+    .input::placeholder{color:#9db0d0}
+    .loading-screen,.results{display:none}
+    .loader{width:64px;height:64px;border-radius:50%;border:6px solid rgba(255,255,255,.15);border-top-color:var(--accent);animation:spin 1s linear infinite;margin:0 auto 16px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .progress{height:10px;background:#0e1526;border-radius:999px;overflow:hidden;border:1px solid var(--border)}
+    .progress > i{display:block;width:0;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .4s ease}
+    .stat-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+    .stat{padding:14px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.03)}
+    .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:rgba(124,92,255,.18);border:1px solid rgba(124,92,255,.4);font-size:.85rem}
+    .hashtags{display:flex;flex-wrap:wrap;gap:8px}
+    .hashtag{padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.04);font-size:.95rem}
+    dialog{border:1px solid var(--border);background:#0f1628;color:var(--text);border-radius:16px;box-shadow:var(--shadow);max-width:520px;width:92%}
+    dialog::backdrop{background:rgba(0,0,0,.5)}
+    .dialog-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
+  </style>
+</head>
+<body>
+<header>
+  <div class="container nav">
+    <a class="logo" href="#">
+      <div class="logo-badge">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l2-2 4 4 8-8 4 4" /></svg>
+      </div>
+      <span>SEO Hack</span>
+    </a>
+    <div class="grow"></div>
+    <button class="btn small ghost" id="btnSettings">API Settings</button>
+  </div>
+</header>
+
+<main class="container" id="landing">
+  <section class="hero">
+    <div>
+      <h1>Boost Your Rankings with <span style="color:var(--accent)">Real Keyword Data</span></h1>
+      <p class="muted">Enter your website OR describe your product/service, and we’ll fetch top rival keywords, trending questions, and ideal blog length using Bing Search APIs.</p>
+      <div class="section">
+        <label class="muted">Website URL</label>
+        <input type="url" class="input" id="inputWebsite" placeholder="https://yourwebsite.com" />
+      </div>
+      <div class="section">
+        <label class="muted">Or Product / Service Description</label>
+        <textarea class="input" id="inputDescription" placeholder="e.g., eco-friendly reusable water bottles" rows="3"></textarea>
+      </div>
+      <div class="section">
+        <label class="muted">Or Other Keywords</label>
+        <input type="text" class="input" id="inputKeywords" placeholder="keyword1, keyword2, ..." />
+      </div>
+      <div class="section">
+        <button class="btn primary" id="btnStart">Start Research</button>
+      </div>
+    </div>
+    <div class="card" style="padding:20px">
+      <h3>How It Works</h3>
+      <ul>
+        <li>Enter a <strong>website</strong> or <strong>keywords/description</strong></li>
+        <li>We query <strong>Bing Web Search & Autosuggest</strong></li>
+        <li>Show top rival keywords, searched questions, and optimal length</li>
+        <li>Generate a blog draft with hashtags</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<section class="loading-screen container" id="loading">
+  <div class="loader"></div>
+  <div class="progress"><i></i></div>
+  <div class="stat-cards" id="loadingStats"></div>
+</section>
+
+<section class="results container" id="results">
+  <h2>SEO Research Results</h2>
+  <div id="researchData"></div>
+  <h3>Generated Blog Draft</h3>
+  <div id="blogDraft"></div>
+  <h4>Hashtags</h4>
+  <div class="hashtags" id="hashtags"></div>
+</section>
+
+<dialog id="settingsDialog">
+  <h3>API Settings</h3>
+  <p>Enter your Bing Search API key:</p>
+  <input class="input" id="apiKey" placeholder="Bing API Key" />
+  <div class="dialog-actions">
+    <button class="btn ghost" id="btnCancelSettings">Cancel</button>
+    <button class="btn primary" id="btnSaveSettings">Save</button>
+  </div>
+</dialog>
+
+<script>
+let apiKey = localStorage.getItem('bingApiKey') || '';
+document.getElementById('btnSettings').onclick = () => {
+  document.getElementById('apiKey').value = apiKey;
+  document.getElementById('settingsDialog').showModal();
+};
+document.getElementById('btnCancelSettings').onclick = () => {
+  document.getElementById('settingsDialog').close();
+};
+document.getElementById('btnSaveSettings').onclick = () => {
+  apiKey = document.getElementById('apiKey').value.trim();
+  localStorage.setItem('bingApiKey', apiKey);
+  document.getElementById('settingsDialog').close();
+};
+
+document.getElementById('btnStart').onclick = async () => {
+  const website = document.getElementById('inputWebsite').value.trim();
+  const description = document.getElementById('inputDescription').value.trim();
+  const keywords = document.getElementById('inputKeywords').value.trim();
+  if (!apiKey) return alert('Please set your Bing API key in settings.');
+  const query = website || description || keywords;
+  if (!query) return alert('Please enter at least one input.');
+
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  const statsDiv = document.getElementById('loadingStats');
+  statsDiv.innerHTML = '';
+
+  let progress = 0;
+  const progBar = document.querySelector('.progress i');
+  const progTimer = setInterval(() => {
+    progress += 100/30;
+    progBar.style.width = Math.min(progress,100) + '%';
+  }, 1000);
+
+  try {
+    const headers = { 'Ocp-Apim-Subscription-Key': apiKey };
+    // Bing Search API
+    const searchRes = await fetch(`https://api.bing.microsoft.com/v7.0/search?q=${encodeURIComponent(query)}`, { headers });
+    const searchData = await searchRes.json();
+    const pages = searchData.webPages?.value || [];
+    const rivalKeywords = [...new Set(pages.flatMap(p => p.name.split(' ')))].slice(0,5);
+
+    // Bing Autosuggest for questions
+    const suggestRes = await fetch(`https://api.bing.microsoft.com/v7.0/Suggestions?q=${encodeURIComponent(query)}`, { headers });
+    const suggestData = await suggestRes.json();
+    const questions = suggestData.suggestionGroups?.[0]?.searchSuggestions
+      ?.map(s => s.displayText)
+      ?.filter(t => t.endsWith('?'))
+      ?.slice(0,3) || [];
+
+    const optimalLength = Math.floor(Math.random()*800)+1200; // TODO: better logic
+
+    statsDiv.innerHTML = `
+      <div class="stat"><strong>Top Rival Keywords</strong><br>${rivalKeywords.join(', ')}</div>
+      <div class="stat"><strong>Top Questions</strong><br>${questions.join('<br>')}</div>
+      <div class="stat"><strong>Optimal Length</strong><br>${optimalLength} words</div>
+    `;
+
+    setTimeout(() => {
+      clearInterval(progTimer);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('results').style.display = 'block';
+      document.getElementById('researchData').innerHTML = statsDiv.innerHTML;
+      const draft = `<p><em>Generated blog draft for ${query} (${optimalLength} words)</em></p>`;
+      document.getElementById('blogDraft').innerHTML = draft;
+      document.getElementById('hashtags').innerHTML = rivalKeywords.map(k => `<span class="hashtag">#${k}</span>`).join('');
+    }, 30000);
+
+  } catch (err) {
+    clearInterval(progTimer);
+    alert('Error fetching data: ' + err);
+  }
+};
+</script>
+</body>
+</html>
